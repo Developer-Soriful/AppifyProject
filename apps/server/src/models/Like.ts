@@ -7,15 +7,24 @@ export interface ILikeDocument extends Document {
   targetId: Types.ObjectId;
   targetType: LikeTarget;
   createdAt: Date;
+  updatedAt: boolean;
 }
 
 const likeSchema = new Schema<ILikeDocument>(
   {
-    user:       { type: Schema.Types.ObjectId, ref: "User", required: true },
-    targetId:   { type: Schema.Types.ObjectId, required: true, refPath: "targetType" },
-    targetType: { type: String, enum: ["Post", "Comment", "Reply"], required: true },
+    user: { type: Schema.Types.ObjectId, ref: "User", required: true },
+    targetId: {
+      type: Schema.Types.ObjectId,
+      required: true,
+      refPath: "targetType",
+    },
+    targetType: {
+      type: String,
+      enum: ["Post", "Comment", "Reply"],
+      required: true,
+    },
   },
-  { timestamps: true, updatedAt: false }
+  { timestamps: true, updatedAt: false },
 );
 
 // Prevents duplicate likes and enables fast lookup
