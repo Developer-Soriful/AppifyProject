@@ -1,0 +1,8 @@
+import jwt from "jsonwebtoken";
+
+const JWT_SECRET = process.env.JWT_SECRET ?? "change-this-secret-in-production";
+const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN ?? "7d";
+
+export const generateToken = (userId: string): string => {
+  return jwt.sign({ userId }, JWT_SECRET, { expiresIn: JWT_EXPIRES_IN } as jwt.SignOptions);
+};
