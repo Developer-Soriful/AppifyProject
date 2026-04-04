@@ -7,7 +7,6 @@ export interface ILikeDocument extends Document {
   targetId: Types.ObjectId;
   targetType: LikeTarget;
   createdAt: Date;
-  updatedAt: boolean;
 }
 
 const likeSchema = new Schema<ILikeDocument>(
@@ -24,7 +23,9 @@ const likeSchema = new Schema<ILikeDocument>(
       required: true,
     },
   },
-  { timestamps: true, updatedAt: false },
+  {
+    timestamps: { createdAt: true, updatedAt: false },
+  },
 );
 
 // Prevents duplicate likes and enables fast lookup
