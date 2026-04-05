@@ -142,7 +142,23 @@ export const updatePost = asyncHandler(async (req: Request, res: Response) => {
 
   if (req.body.content !== undefined) post.content = req.body.content;
   if (req.body.visibility !== undefined) post.visibility = req.body.visibility;
-  if (req.file) post.image = `/uploads/${req.file.filename}`;
+  
+  // Handle image upload - Cloudinary or local
+  if (req.file) {
+    if (process.env.CLOUDINARY_CLOUD_NAME) {
+      // Upload to Cloudinary
+      const result = await uploadImage(req.file);
+      post.image = result.url;
+    } else {
+      // Local storage fallback
+      post.image = `/uploads/${req.file.filename}`;
+    }
+  }
+  
+  // Handle image removal
+  if (req.body.removeImage === "true") {
+    post.image = undefined;
+  }
 
   await post.save();
   await post.populate("author", "firstName lastName avatar");

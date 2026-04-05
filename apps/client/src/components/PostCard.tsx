@@ -38,6 +38,10 @@ export default function PostCard({ post, onPostUpdated, onPostDeleted }: PostCar
   const [showEditModal, setShowEditModal] = useState(false);
   const [editContent, setEditContent] = useState(post.content);
   const [editVisibility, setEditVisibility] = useState<PostVisibility>(post.visibility);
+  const [editImage, setEditImage] = useState<File | null>(null);
+  const [editImagePreview, setEditImagePreview] = useState<string | null>(post.image || null);
+  const [removeImage, setRemoveImage] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [isDeleting, setIsDeleting] = useState(false);
   const [isUpdating, setIsUpdating] = useState(false);
   
@@ -144,7 +148,7 @@ export default function PostCard({ post, onPostUpdated, onPostDeleted }: PostCar
     }
   };
 
-  // Handle edit post
+  // Handle edit post with image support
   const handleEdit = async () => {
     if (!editContent.trim()) {
       toast.error("Content cannot be empty");
@@ -153,17 +157,55 @@ export default function PostCard({ post, onPostUpdated, onPostDeleted }: PostCar
 
     setIsUpdating(true);
     try {
-      const { data } = await apiClient.put(`/posts/${post._id}`, {
-        content: editContent,
-        visibility: editVisibility,
+      const formData = new FormData();
+      formData.append("content", editContent);
+      formData.append("visibility", editVisibility);
+      
+      if (editImage) {
+        formData.append("image", editImage);
+      }
+      
+      if (removeImage) {
+        formData.append("removeImage", "true");
+      }
+
+      const { data } = await apiClient.put(`/posts/${post._id}`, formData, {
+        headers: {
+          "Content-Type": "multipart/form-data",
+        },
       });
+      
       toast.success("Post updated successfully");
       setShowEditModal(false);
+      setEditImage(null);
+      setRemoveImage(false);
       onPostUpdated();
     } catch (err: any) {
       toast.error(err.response?.data?.message || "Failed to update post");
     } finally {
       setIsUpdating(false);
+    }
+  };
+
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (file.size > 5 * 1024 * 1024) {
+        toast.error("Image size must be less than 5MB");
+        return;
+      }
+      setEditImage(file);
+      setEditImagePreview(URL.createObjectURL(file));
+      setRemoveImage(false);
+    }
+  };
+
+  const handleRemoveImage = () => {
+    setEditImage(null);
+    setEditImagePreview(null);
+    setRemoveImage(true);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
     }
   };
 
@@ -236,6 +278,9 @@ export default function PostCard({ post, onPostUpdated, onPostDeleted }: PostCar
                     onClick={() => {
                       setEditContent(post.content);
                       setEditVisibility(post.visibility);
+                      setEditImagePreview(post.image || null);
+                      setEditImage(null);
+                      setRemoveImage(false);
                       setShowEditModal(true);
                       setShowDropdown(false);
                     }}
@@ -510,6 +555,54 @@ export default function PostCard({ post, onPostUpdated, onPostDeleted }: PostCar
                 <option value="public">Public</option>
                 <option value="private">Private</option>
               </select>
+            </div>
+
+            {/* Image Upload Section */}
+            <div className="mb-3">
+              <label className="form-label text-muted">Image</label>
+              
+              {editImagePreview ? (
+                <div className="position-relative mb-2">
+                  <img
+                    src={editImagePreview}
+                    alt="Preview"
+                    className="rounded"
+                    style={{ width: "100%", maxHeight: "200px", objectFit: "cover" }}
+                  />
+                  <button
+                    type="button"
+                    className="btn btn-danger btn-sm position-absolute top-0 end-0 m-2"
+                    onClick={handleRemoveImage}
+                    title="Remove image"
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                    </svg>
+                  </button>
+                </div>
+              ) : (
+                <div className="border rounded p-3 text-center">
+                  <input
+                    type="file"
+                    ref={fileInputRef}
+                    onChange={handleImageChange}
+                    accept="image/*"
+                    className="d-none"
+                    id="edit-image-input"
+                  />
+                  <label
+                    htmlFor="edit-image-input"
+                    className="btn btn-outline-primary btn-sm"
+                    style={{ cursor: "pointer" }}
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2" className="me-1">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                    </svg>
+                    Add Image
+                  </label>
+                  <p className="text-muted small mt-2 mb-0">Max size: 5MB</p>
+                </div>
+              )}
             </div>
 
             <div className="d-flex justify-content-end gap-2">
