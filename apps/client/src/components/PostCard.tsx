@@ -88,17 +88,18 @@ export default function PostCard({ post, onPostUpdated }: PostCardProps) {
       <div className="_feed_inner_timeline_total_reacts _padd_r24 _padd_l24 _mar_b26 mt-3">
         <div className="_feed_inner_timeline_total_reacts_image">
           <img src="/assets/images/react_img1.png" alt="Like" className="_react_img1" />
-          <p className="_feed_inner_timeline_total_reacts_para">{post.likesCount}</p>
+          <p className="_feed_inner_timeline_total_reacts_para">{likesCount}</p>
         </div>
         <div className="_feed_inner_timeline_total_reacts_txt">
-          <p className="_feed_inner_timeline_total_reacts_para1">
+          <div className="d-flex gap-3">
             <button onClick={() => setShowComments(!showComments)} className="btn btn-link p-0 text-decoration-none _feed_inner_timeline_total_reacts_para1">
-              <span>{post.commentsCount}</span> Comments
+              <span>{post.commentsCount || 0}</span> Comments
             </button>
-          </p>
-          <p className="_feed_inner_timeline_total_reacts_para2"><span>{sharesCount}</span> Share</p>
+            <p className="_feed_inner_timeline_total_reacts_para2"><span>{sharesCount}</span> Share</p>
+          </div>
         </div>
       </div>
+
 
 
       <div className="_feed_inner_timeline_reaction">

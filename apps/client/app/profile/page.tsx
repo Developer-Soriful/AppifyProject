@@ -8,6 +8,8 @@ import PostCard from "../../src/components/PostCard";
 import CreatePost from "../../src/components/CreatePost";
 import { useProfile } from "../../src/hooks/useProfile";
 import { useAuth } from "../../src/context/AuthContext";
+import { getAvatarUrl } from "../../src/lib/utils";
+
 
 export default function MyProfilePage() {
   const { user: authUser } = useAuth();
@@ -30,11 +32,12 @@ export default function MyProfilePage() {
               {/* Profile Header */}
               <div className="_feed_inner_area _b_radious6 _padd_t24 _padd_r24 _padd_l24 _mar_b16 text-center">
                 <img 
-                  src={profileUser?.avatar || "/assets/images/profile.png"} 
+                  src={getAvatarUrl(profileUser?.avatar, profileUser?.firstName)} 
                   alt="Avatar" 
                   className="rounded-circle border mb-3" 
                   style={{ width: "120px", height: "120px", objectFit: "cover" }} 
                 />
+
                 <h3 className="_title4">{profileUser?.firstName} {profileUser?.lastName}</h3>
                 <p className="text-muted">{profileUser?.email}</p>
                 <button className="btn btn-outline-primary btn-sm px-4 mb-3">Edit Profile</button>

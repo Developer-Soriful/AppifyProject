@@ -4,6 +4,7 @@ import React, { useState, useRef } from "react";
 import apiClient from "../lib/axios";
 import { useAuth } from "../context/AuthContext";
 import toast from "react-hot-toast";
+import { getAvatarUrl } from "../lib/utils";
 
 interface CreatePostProps {
   onPostCreated: () => void;
@@ -57,8 +58,9 @@ export default function CreatePost({ onPostCreated }: CreatePostProps) {
         <form onSubmit={handleSubmit}>
           <div className="_feed_inner_area_info _mar_b24">
             <div className="_feed_inner_area_image">
-              <img src={user?.avatar || "/assets/images/profile-1.png"} alt="User" className="_info_img" />
+              <img src={getAvatarUrl(user?.avatar, user?.firstName)} alt="User" className="_info_img" />
             </div>
+
             <div className="_feed_inner_area_txt">
               <textarea 
                 className="form-control _feed_area_textarea" 

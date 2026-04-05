@@ -7,6 +7,8 @@ import LeftSidebar from "../../../src/components/LeftSidebar";
 import RightSidebar from "../../../src/components/RightSidebar";
 import PostCard from "../../../src/components/PostCard";
 import { useProfile } from "../../../src/hooks/useProfile";
+import { getAvatarUrl } from "../../../src/lib/utils";
+
 
 export default function UserProfilePage() {
   const { id } = useParams() as { id: string };
@@ -29,11 +31,12 @@ export default function UserProfilePage() {
               {/* Profile Header */}
               <div className="_feed_inner_area _b_radious6 _padd_t24 _padd_r24 _padd_l24 _mar_b16 text-center">
                 <img 
-                  src={user?.avatar || "/assets/images/profile.png"} 
+                  src={getAvatarUrl(user?.avatar, user?.firstName)} 
                   alt="Avatar" 
                   className="rounded-circle border mb-3" 
                   style={{ width: "120px", height: "120px", objectFit: "cover" }} 
                 />
+
                 <h3 className="_title4">{user?.firstName} {user?.lastName}</h3>
                 <p className="text-muted">{user?.email}</p>
                 <div className="d-flex justify-content-center gap-2 mb-3">

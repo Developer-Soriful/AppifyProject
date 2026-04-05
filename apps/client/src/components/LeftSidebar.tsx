@@ -4,6 +4,8 @@ import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import apiClient from "../lib/axios";
 import { IUser } from "@appify/shared";
+import { getAvatarUrl } from "../lib/utils";
+
 
 
 export default function LeftSidebar() {
@@ -77,9 +79,10 @@ export default function LeftSidebar() {
                 <div className="_left_inner_area_suggest_info_box">
                   <div className="_left_inner_area_suggest_info_image">
                     <Link href={`/profile/${sUser._id}`}>
-                      <img src={sUser.avatar || "/assets/images/people1.png"} alt="Image" className="_info_img" />
+                      <img src={getAvatarUrl(sUser.avatar, sUser.firstName)} alt="Image" className="_info_img" />
                     </Link>
                   </div>
+
                   <div className="_left_inner_area_suggest_info_txt">
                     <Link href={`/profile/${sUser._id}`}>
                       <h4 className="_left_inner_area_suggest_info_title">{sUser.firstName} {sUser.lastName}</h4>
