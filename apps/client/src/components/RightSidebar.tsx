@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import Link from "next/link";
 import apiClient from "../lib/axios";
 import { useFollow } from "../hooks/useFollow";
@@ -8,34 +8,93 @@ import { getAvatarUrl } from "../lib/utils";
 import { IUser } from "@appify/shared";
 import toast from "react-hot-toast";
 
+// Connection status type
+type ConnectionStatus = "none" | "pending" | "connected";
+
 export default function RightSidebar() {
   const [suggestedUsers, setSuggestedUsers] = useState<IUser[]>([]);
   const [loading, setLoading] = useState(true);
-  const { toggleFollow, loading: followLoading } = useFollow();
-  const [followStates, setFollowStates] = useState<Record<string, boolean>>({});
+  const { sendConnectionRequest, loading: followLoading } = useFollow();
+  const [connectionStates, setConnectionStates] = useState<Record<string, ConnectionStatus>>({});
 
-  useEffect(() => {
-    const fetchSuggested = async () => {
-      try {
-        const { data } = await apiClient.get("/users/suggested");
-        setSuggestedUsers(data.data);
-      } catch (err) {
-        console.error("Failed to fetch suggested users", err);
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchSuggested();
+  // Fetch suggested users
+  const fetchSuggested = useCallback(async () => {
+    try {
+      const { data } = await apiClient.get("/users/suggested");
+      setSuggestedUsers(data.data);
+    } catch (err) {
+      console.error("Failed to fetch suggested users", err);
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
+  useEffect(() => {
+    fetchSuggested();
+  }, [fetchSuggested]);
+
   const handleFollow = async (userId: string) => {
-    const isCurrentlyFollowing = followStates[userId] || false;
+    const currentStatus = connectionStates[userId] || "none";
+    
+    if (currentStatus === "pending" || currentStatus === "connected") {
+      toast.success("Connection request already sent");
+      return;
+    }
+
     try {
-      const newStatus = await toggleFollow(userId, isCurrentlyFollowing);
-      setFollowStates((prev) => ({ ...prev, [userId]: newStatus }));
-      toast.success(newStatus ? "Connection request sent" : "Unfollowed successfully");
+      await sendConnectionRequest(userId);
+      
+      // Update local state to pending
+      setConnectionStates((prev) => ({ ...prev, [userId]: "pending" }));
+      toast.success("Connection request sent!");
+      
+      // Remove user from list after short delay (better UX)
+      setTimeout(() => {
+        setSuggestedUsers((prev) => prev.filter((u) => u._id !== userId));
+      }, 1000);
+      
     } catch (err: any) {
-      toast.error(err.response?.data?.message || "Failed to update follow status");
+      const message = err.response?.data?.message || "Failed to send request";
+      
+      // Handle specific error cases
+      if (message.includes("already sent")) {
+        setConnectionStates((prev) => ({ ...prev, [userId]: "pending" }));
+        toast.success("Request already sent");
+      } else if (message.includes("Already connected")) {
+        setConnectionStates((prev) => ({ ...prev, [userId]: "connected" }));
+        toast.success("Already connected with this user");
+        setSuggestedUsers((prev) => prev.filter((u) => u._id !== userId));
+      } else {
+        toast.error(message);
+      }
+    }
+  };
+
+  const getButtonState = (userId: string) => {
+    const status = connectionStates[userId] || "none";
+    const isLoading = followLoading[userId];
+    
+    if (isLoading) return { text: "...", disabled: true, style: "loading" };
+    
+    switch (status) {
+      case "pending":
+        return { 
+          text: "Pending", 
+          disabled: true, 
+          style: "pending" 
+        };
+      case "connected":
+        return { 
+          text: "Connected", 
+          disabled: true, 
+          style: "connected" 
+        };
+      default:
+        return { 
+          text: "Follow", 
+          disabled: false, 
+          style: "follow" 
+        };
     }
   };
 
@@ -111,24 +170,57 @@ export default function RightSidebar() {
                   </div>
                 </div>
                 <div className="_left_inner_area_suggest_info_link">
-                  <button 
-                    className="_info_link btn btn-sm"
-                    style={{ 
-                      background: followStates[user._id] ? "transparent" : "var(--color5)",
-                      color: followStates[user._id] ? "var(--color5)" : "white",
-                      border: "1px solid var(--color5)",
-                      minWidth: "70px"
-                    }}
-                    onClick={() => handleFollow(user._id)}
-                    disabled={followLoading[user._id]}
-                  >
-                    {followLoading[user._id] 
-                      ? "..." 
-                      : followStates[user._id] 
-                        ? "Following" 
-                        : "Follow"
-                    }
-                  </button>
+                  {(() => {
+                    const buttonState = getButtonState(user._id);
+                    const getButtonStyles = () => {
+                      switch (buttonState.style) {
+                        case "pending":
+                          return { 
+                            background: "#F5F5F5", 
+                            color: "#666", 
+                            border: "1px solid #D9D9D9",
+                            cursor: "not-allowed"
+                          };
+                        case "connected":
+                          return { 
+                            background: "#E6F7FF", 
+                            color: "#1890FF", 
+                            border: "1px solid #1890FF",
+                            cursor: "not-allowed"
+                          };
+                        case "loading":
+                          return { 
+                            background: "var(--color5)", 
+                            color: "white", 
+                            border: "1px solid var(--color5)",
+                            opacity: 0.7
+                          };
+                        default:
+                          return { 
+                            background: "var(--color5)", 
+                            color: "white", 
+                            border: "1px solid var(--color5)"
+                          };
+                      }
+                    };
+                    
+                    return (
+                      <button 
+                        className="_info_link btn btn-sm"
+                        style={{ 
+                          ...getButtonStyles(),
+                          minWidth: "80px",
+                          fontSize: "13px",
+                          fontWeight: 500,
+                          transition: "all 0.2s"
+                        }}
+                        onClick={() => handleFollow(user._id)}
+                        disabled={buttonState.disabled}
+                      >
+                        {buttonState.text}
+                      </button>
+                    );
+                  })()}
                 </div>
               </div>
             ))

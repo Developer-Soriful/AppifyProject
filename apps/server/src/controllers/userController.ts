@@ -11,7 +11,10 @@ export const getSuggestedUsers = asyncHandler(
   async (req: Request, res: Response) => {
     const currentUserId = req.user!._id;
 
-    // Get IDs of users to exclude (already following, pending, or self)
+    // Get IDs of users to exclude:
+    // 1. Current user
+    // 2. Already following (accepted)
+    // 3. Pending requests (sent or received)
     const follows = await Follow.find({
       $or: [
         { follower: currentUserId },
@@ -31,7 +34,7 @@ export const getSuggestedUsers = asyncHandler(
       _id: { $nin: Array.from(excludeIds) },
     })
       .select("firstName lastName avatar followersCount")
-      .sort({ followersCount: -1 }) // Popular users first
+      .sort({ followersCount: -1 })
       .limit(5)
       .lean();
 
