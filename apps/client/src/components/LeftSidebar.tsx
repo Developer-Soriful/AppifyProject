@@ -88,7 +88,27 @@ export default function LeftSidebar() {
       );
       toast.success("Connection request sent");
     } catch (err: any) {
-      toast.error(err.response?.data?.message || "Failed to send request");
+      const message = err.response?.data?.message || "";
+      
+      // Handle specific errors gracefully
+      if (message.includes("already sent") || message.includes("Connection request already")) {
+        setSuggestedUsers((prev) =>
+          prev.map((u) =>
+            u._id === userId ? { ...u, connectionStatus: "pending_sent" as ConnectionStatus } : u
+          )
+        );
+        toast.success("Request already sent");
+      } else if (message.includes("Already connected")) {
+        setSuggestedUsers((prev) => prev.filter((u) => u._id !== userId));
+        toast.success("Already connected");
+      } else if (message.includes("Cannot send connection request to yourself")) {
+        toast.error("Cannot follow yourself");
+      } else if (message.includes("User not found")) {
+        toast.error("User not found");
+        setSuggestedUsers((prev) => prev.filter((u) => u._id !== userId));
+      } else {
+        toast.error("Failed to send request");
+      }
     }
   };
 
