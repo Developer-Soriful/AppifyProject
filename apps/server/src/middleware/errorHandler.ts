@@ -22,9 +22,9 @@ const errorHandler = (err: Error, req: Request, res: Response, _next: NextFuncti
     message = "File size must be less than 5MB";
   }
 
-  if (process.env.NODE_ENV !== "production") {
-    console.error(`[${req.method}] ${req.path} →`, err.message);
-  }
+  // Log full error details for debugging
+  console.error(`[ERROR] ${req.method} ${req.path} → ${statusCode}: ${message}`);
+  console.error("Error details:", err);
 
   res.status(statusCode).json({ success: false, message });
 };
