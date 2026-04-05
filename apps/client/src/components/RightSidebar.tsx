@@ -37,8 +37,7 @@ export default function RightSidebar() {
     const currentStatus = connectionStates[userId] || "none";
     
     if (currentStatus === "pending" || currentStatus === "connected") {
-      toast.success("Connection request already sent");
-      return;
+      return; // Silent return if already handled
     }
 
     try {
@@ -51,21 +50,29 @@ export default function RightSidebar() {
       // Remove user from list after short delay (better UX)
       setTimeout(() => {
         setSuggestedUsers((prev) => prev.filter((u) => u._id !== userId));
-      }, 1000);
+      }, 1500);
       
     } catch (err: any) {
-      const message = err.response?.data?.message || "Failed to send request";
+      const message = err.response?.data?.message || "";
       
-      // Handle specific error cases
-      if (message.includes("already sent")) {
+      // Handle specific error cases gracefully - don't show error for these
+      if (message.includes("already sent") || message.includes("Connection request already")) {
         setConnectionStates((prev) => ({ ...prev, [userId]: "pending" }));
-        toast.success("Request already sent");
+        // Silently update UI, don't show error
+        setTimeout(() => {
+          setSuggestedUsers((prev) => prev.filter((u) => u._id !== userId));
+        }, 1500);
       } else if (message.includes("Already connected")) {
         setConnectionStates((prev) => ({ ...prev, [userId]: "connected" }));
-        toast.success("Already connected with this user");
+        // Silently remove from suggestions
+        setSuggestedUsers((prev) => prev.filter((u) => u._id !== userId));
+      } else if (message.includes("Cannot send connection request to yourself")) {
+        toast.error("Cannot follow yourself");
+      } else if (message.includes("User not found")) {
+        toast.error("User not found");
         setSuggestedUsers((prev) => prev.filter((u) => u._id !== userId));
       } else {
-        toast.error(message);
+        toast.error("Failed to send request");
       }
     }
   };
