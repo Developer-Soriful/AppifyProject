@@ -8,8 +8,11 @@ import postRoutes from "./routes/postRoutes.js";
 import commentRoutes from "./routes/commentRoutes.js";
 import replyRoutes from "./routes/replyRoutes.js";
 import likeRoutes from "./routes/likeRoutes.js";
+import userRoutes from "./routes/userRoutes.js";
 import errorHandler from "./middleware/errorHandler.js";
+
 import { ApiError } from "./utils/ApiError.js";
+import asyncHandler from "./utils/asyncHandler.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -40,6 +43,8 @@ app.use("/api/posts", postRoutes);
 app.use("/api/posts/:postId/comments", commentRoutes);
 app.use("/api/comments/:commentId/replies", replyRoutes);
 app.use("/api/likes", likeRoutes);
+app.use("/api/users", userRoutes);
+
 
 // 404
 app.use((_req, _res, next) => {

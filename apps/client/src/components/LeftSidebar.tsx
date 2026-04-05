@@ -1,9 +1,26 @@
 "use client";
 
-import React from "react";
+import React, { useState, useEffect } from "react";
 import Link from "next/link";
+import apiClient from "../lib/axios";
+import { IUser } from "@appify/shared";
+
 
 export default function LeftSidebar() {
+  const [suggestedUsers, setSuggestedUsers] = useState<IUser[]>([]);
+
+  useEffect(() => {
+    const fetchSuggested = async () => {
+      try {
+        const { data } = await apiClient.get("/users/suggested");
+        setSuggestedUsers(data.data);
+      } catch (err) {
+        console.error("Failed to fetch suggested users", err);
+      }
+    };
+    fetchSuggested();
+  }, []);
+
   return (
     <div className="_layout_left_sidebar_wrap">
       <div className="_layout_left_sidebar_inner">
@@ -52,26 +69,31 @@ export default function LeftSidebar() {
             </span>
           </div>
           
-          {[1, 2, 3].map((i) => (
-            <div key={i} className="_left_inner_area_suggest_info">
-              <div className="_left_inner_area_suggest_info_box">
-                <div className="_left_inner_area_suggest_info_image">
-                  <Link href="/profile">
-                    <img src={`/assets/images/people${i}.png`} alt="Image" className="_info_img" />
-                  </Link>
+          {suggestedUsers.length === 0 ? (
+            <p className="text-muted small px-3">No suggestions available</p>
+          ) : (
+            suggestedUsers.map((sUser) => (
+              <div key={sUser._id} className="_left_inner_area_suggest_info">
+                <div className="_left_inner_area_suggest_info_box">
+                  <div className="_left_inner_area_suggest_info_image">
+                    <Link href={`/profile/${sUser._id}`}>
+                      <img src={sUser.avatar || "/assets/images/people1.png"} alt="Image" className="_info_img" />
+                    </Link>
+                  </div>
+                  <div className="_left_inner_area_suggest_info_txt">
+                    <Link href={`/profile/${sUser._id}`}>
+                      <h4 className="_left_inner_area_suggest_info_title">{sUser.firstName} {sUser.lastName}</h4>
+                    </Link>
+                    <p className="_left_inner_area_suggest_info_para">New User</p>
+                  </div>
                 </div>
-                <div className="_left_inner_area_suggest_info_txt">
-                  <Link href="/profile">
-                    <h4 className="_left_inner_area_suggest_info_title">User {i}</h4>
-                  </Link>
-                  <p className="_left_inner_area_suggest_info_para">Occupation {i}</p>
+                <div className="_left_inner_area_suggest_info_link">
+                  <Link href="#0" className="_info_link">Connect</Link>
                 </div>
               </div>
-              <div className="_left_inner_area_suggest_info_link">
-                <Link href="#0" className="_info_link">Connect</Link>
-              </div>
-            </div>
-          ))}
+            ))
+          )}
+
         </div>
       </div>
     </div>

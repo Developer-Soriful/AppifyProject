@@ -1,12 +1,10 @@
 import mongoose, { Document, Schema } from "mongoose";
 import bcrypt from "bcryptjs";
+import { IUser } from "@appify/shared";
 
-export interface IUserDocument extends Document {
-  firstName: string;
-  lastName: string;
-  email: string;
+export interface IUserDocument
+  extends Document, Omit<IUser, "_id" | "createdAt" | "updatedAt"> {
   password: string;
-  avatar?: string;
   createdAt: Date;
   updatedAt: Date;
   comparePassword(candidate: string): Promise<boolean>;
@@ -24,16 +22,19 @@ const userSchema = new Schema<IUserDocument>(
       trim: true,
     },
     password: { type: String, required: true, minlength: 6, select: false },
-    avatar: { type: String },
+    avatar: { 
+      type: String, 
+      default: "https://api.dicebear.com/7.x/avataaars/svg?seed=fallback" 
+    },
   },
   { timestamps: true },
 );
 
-userSchema.pre("save", async function (next: any) {
-  if (!this.isModified("password")) return next();
+userSchema.pre("save", async function () {
+  if (!this.isModified("password")) return;
   this.password = await bcrypt.hash(this.password, 12);
-  next();
 });
+
 
 userSchema.methods.comparePassword = async function (
   candidate: string,

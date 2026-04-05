@@ -14,8 +14,7 @@ export const required = (fields: string[]): RequestHandler =>
 export const isEmail: RequestHandler = (req, _res, next) => {
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
   if (!emailRegex.test(req.body.email as string)) {
-    next(new ApiError("Invalid email address", 400));
-    return;
+    return next(new ApiError("Invalid email address", 400));
   }
   next();
 };
@@ -23,8 +22,8 @@ export const isEmail: RequestHandler = (req, _res, next) => {
 export const isStrongPassword: RequestHandler = (req, _res, next) => {
   const pwd = req.body.password as string | undefined;
   if (!pwd || pwd.length < 6) {
-    next(new ApiError("Password must be at least 6 characters", 400));
-    return;
+    return next(new ApiError("Password must be at least 6 characters", 400));
   }
   next();
 };
+

@@ -1,40 +1,33 @@
 "use client";
 
-import React, { useEffect, useState, useCallback } from "react";
+import { useEffect } from "react";
+import { useSearchParams } from "next/navigation";
+
 import Navbar from "@/src/components/Navbar";
 import LeftSidebar from "@/src/components/LeftSidebar";
 import RightSidebar from "@/src/components/RightSidebar";
 import CreatePost from "@/src/components/CreatePost";
 import PostCard from "@/src/components/PostCard";
-import apiClient from "@/src/lib/axios";
-import { IPost } from "@appify/shared";
 import { useAuth } from "@/src/context/AuthContext";
+import { usePosts } from "@/src/hooks/usePosts";
 
 export default function FeedPage() {
   const { loading: authLoading, user } = useAuth();
-  const [posts, setPosts] = useState<IPost[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { posts, loading, fetchPosts } = usePosts();
+  const searchParams = useSearchParams();
+  const search = searchParams.get("search") || "";
 
-  const fetchPosts = useCallback(async () => {
-    try {
-      const { data } = await apiClient.get("/posts");
-      setPosts(data.data);
-    } catch (err) {
-      console.error("Failed to fetch posts", err);
-    } finally {
-      setLoading(false);
-    }
-  }, []);
 
   useEffect(() => {
     if (!authLoading && user) {
-      fetchPosts();
+      fetchPosts(1, search);
     }
-  }, [authLoading, user, fetchPosts]);
+  }, [authLoading, user, fetchPosts, search]);
+
 
   if (authLoading)
     return <div className="p-5 text-center">Loading session...</div>;
-  if (!user) return null; // AuthContext will redirect
+  if (!user) return null;
 
   return (
     <div className="_layout _layout_main_wrapper">

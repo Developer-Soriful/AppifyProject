@@ -9,7 +9,9 @@ export interface IPostDocument extends Document {
   visibility: Visibility;
   likesCount: number;
   commentsCount: number;
+  sharesCount: number;
   createdAt: Date;
+
   updatedAt: Date;
 }
 
@@ -21,6 +23,7 @@ const postSchema = new Schema<IPostDocument>(
     visibility:    { type: String, enum: ["public", "private"], default: "public" },
     likesCount:    { type: Number, default: 0, min: 0 },
     commentsCount: { type: Number, default: 0, min: 0 },
+    sharesCount:   { type: Number, default: 0, min: 0 },
   },
   { timestamps: true }
 );

@@ -5,6 +5,10 @@ import { IPost } from "@appify/shared";
 import apiClient from "../lib/axios";
 import { formatDistanceToNow } from "date-fns";
 import toast from "react-hot-toast";
+import CommentSection from "./CommentSection";
+import { getAvatarUrl, getPostImageUrl } from "../lib/utils";
+import Link from "next/link";
+
 
 interface PostCardProps {
   post: IPost;
@@ -12,7 +16,11 @@ interface PostCardProps {
 }
 
 export default function PostCard({ post, onPostUpdated }: PostCardProps) {
-  const [isLiked, setIsLiked] = useState(post.likes.includes(post.author._id)); // This is a fallback, real isLiked should come from backend or state
+  const [isLiked, setIsLiked] = useState(post.isLiked ?? false); 
+  const [likesCount, setLikesCount] = useState(post.likesCount || 0);
+  const [showComments, setShowComments] = useState(false);
+  const [sharesCount, setSharesCount] = useState(post.sharesCount || 0);
+
   // For production, the backend should return isLiked: boolean for the requesting user.
   // My backend logic returns isLiked in the response of toggleLike.
   
@@ -20,24 +28,33 @@ export default function PostCard({ post, onPostUpdated }: PostCardProps) {
     try {
       const { data } = await apiClient.post(`/likes/Post/${post._id}`);
       setIsLiked(data.data.isLiked);
+      setLikesCount(data.data.likesCount);
       onPostUpdated();
     } catch (err) {
       toast.error("Failed to like post");
     }
   };
 
-  const getImageUrl = (path: string) => {
-    if (path.startsWith("http")) return path;
-    return `http://localhost:5000/${path}`;
+  const handleShare = async () => {
+    try {
+      const { data } = await apiClient.post(`/posts/${post._id}/share`);
+      setSharesCount(data.data.sharesCount);
+      toast.success("Post shared successfully!");
+    } catch (err) {
+      toast.error("Failed to share post");
+    }
   };
+
 
   return (
     <div className="_feed_inner_timeline_post_area _b_radious6 _padd_b24 _padd_t24 _mar_b16">
       <div className="_feed_inner_timeline_content _padd_r24 _padd_l24">
         <div className="_feed_inner_timeline_post_top">
           <div className="_feed_inner_timeline_post_box">
-            <div className="_feed_inner_timeline_post_box_image">
-              <img src={post.author.avatar || "/assets/images/post_img.png"} alt="Author" className="_post_img" />
+            <div className="_timeline_post_image">
+              <Link href={`/profile/${post.author._id}`}>
+                <img src={getAvatarUrl(post.author.avatar, post.author.firstName)} alt="Author" className="_info_img" />
+              </Link>
             </div>
             <div className="_feed_inner_timeline_post_box_txt">
               <h4 className="_feed_inner_timeline_post_box_title">{post.author.firstName} {post.author.lastName}</h4>
@@ -62,8 +79,8 @@ export default function PostCard({ post, onPostUpdated }: PostCardProps) {
         <p className="_feed_inner_timeline_post_title mt-3">{post.content}</p>
         
         {post.image && (
-          <div className="_feed_inner_timeline_image mt-3">
-            <img src={getImageUrl(post.image)} alt="Post" className="_time_img rounded" style={{ width: "100%", maxHeight: "500px", objectFit: "cover" }} />
+          <div className="_timeline_post_main_image mt-3">
+            <img src={getPostImageUrl(post.image) || ""} alt="Post" className="_main_img" style={{ width: "100%", maxHeight: "500px", objectFit: "cover" }} />
           </div>
         )}
       </div>
@@ -75,11 +92,14 @@ export default function PostCard({ post, onPostUpdated }: PostCardProps) {
         </div>
         <div className="_feed_inner_timeline_total_reacts_txt">
           <p className="_feed_inner_timeline_total_reacts_para1">
-            <a href="#0"><span>{post.commentsCount}</span> Comments</a>
+            <button onClick={() => setShowComments(!showComments)} className="btn btn-link p-0 text-decoration-none _feed_inner_timeline_total_reacts_para1">
+              <span>{post.commentsCount}</span> Comments
+            </button>
           </p>
-          <p className="_feed_inner_timeline_total_reacts_para2"><span>0</span> Share</p>
+          <p className="_feed_inner_timeline_total_reacts_para2"><span>{sharesCount}</span> Share</p>
         </div>
       </div>
+
 
       <div className="_feed_inner_timeline_reaction">
         <button 
@@ -99,14 +119,14 @@ export default function PostCard({ post, onPostUpdated }: PostCardProps) {
           <span className="_feed_inner_timeline_reaction_link">
             <span className="d-flex align-items-center">
               <svg className="_reaction_svg" xmlns="http://www.w3.org/2000/svg" width="21" height="21" fill="none" viewBox="0 0 21 21">
-                <path stroke="#666" d="M1 10.5c0-.464 0-.696.009-.893A9 9 0 019.607 1.01C9.804 1 10.036 1 10.5 1v0c.464 0 .696 0 .893.009a9 9 0 018.598 8.598c.009.197.009.429.009.893v6.046c0 1.36 0 2.041-.317 2.535a2 2 0 01-.602.602c-.494.317-1.174.317-2.535.317H10.5c-.464 0-.696 0-.893-.009a9 9 0 01-8.598-8.598C1 11.196 1 10.964 1 10.5v0z"/>
+                <path stroke="#666" strokeLinecap="round" strokeLinejoin="round" d="M1 10.5c0-.464 0-.696.009-.893A9 9 0 019.607 1.01C9.804 1 10.036 1 10.5 1v0c.464 0 .696 0 .893.009a9 9 0 018.598 8.598c.009.197.009.429.009.893v6.046c0 1.36 0 2.041-.317 2.535a2 2 0 01-.602.602c-.494.317-1.174.317-2.535.317H10.5c-.464 0-.696 0-.893-.009a9 9 0 01-8.598-8.598C1 11.196 1 10.964 1 10.5v0z"/>
                 <path stroke="#666" strokeLinecap="round" strokeLinejoin="round" d="M6.938 9.313h7.125M10.5 14.063h3.563"/>
               </svg>
               <span className="ms-1">Comment</span>
             </span>
           </span>
         </button>
-        <button className="_feed_reaction border-0 bg-transparent">
+        <button className="_feed_reaction border-0 bg-transparent" onClick={handleShare}>
           <span className="_feed_inner_timeline_reaction_link">
             <span className="d-flex align-items-center">
               <svg className="_reaction_svg" xmlns="http://www.w3.org/2000/svg" width="24" height="21" fill="none" viewBox="0 0 24 21">
@@ -118,7 +138,13 @@ export default function PostCard({ post, onPostUpdated }: PostCardProps) {
         </button>
       </div>
       
-      {/* Comment areas can be added here */}
+      {showComments && (
+        <CommentSection 
+          postId={post._id} 
+          onCommentAdded={onPostUpdated}
+        />
+      )}
     </div>
+
   );
 }

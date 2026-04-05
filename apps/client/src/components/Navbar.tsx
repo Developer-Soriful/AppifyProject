@@ -2,12 +2,19 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useAuth } from "../context/AuthContext";
+import { getAvatarUrl } from "../lib/utils";
+
 
 export default function Navbar() {
   const { user, logout } = useAuth();
+  const router = useRouter();
   const [profileOpen, setProfileOpen] = useState(false);
   const [notifyOpen, setNotifyOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+
+
 
   return (
     <nav className="navbar navbar-expand-lg navbar-light _header_nav _padd_t10">
@@ -32,8 +39,18 @@ export default function Navbar() {
 
         <div className="collapse navbar-collapse" id="navbarSupportedContent">
           <div className="_header_form ms-auto">
-            <form className="_header_form_grp">
+            <form 
+              className="_header_form_grp"
+              onSubmit={(e) => {
+                e.preventDefault();
+                if (searchQuery.trim()) {
+                   router.push(`/feed?search=${searchQuery.trim()}`);
+                }
+              }}
+            >
+
               <svg
+
                 className="_header_form_svg"
                 xmlns="http://www.w3.org/2000/svg"
                 width="17"
@@ -42,16 +59,20 @@ export default function Navbar() {
                 viewBox="0 0 17 17"
               >
                 <circle cx="7" cy="7" r="6" stroke="#666" />
-                <path stroke="#666" stroke-linecap="round" d="M16 16l-3-3" />
+                <path stroke="#666" strokeLinecap="round" d="M16 16l-3-3" />
               </svg>
+
               <input
                 className="form-control me-2 _inpt1"
                 type="search"
-                placeholder="input search text"
+                placeholder="search users or posts"
                 aria-label="Search"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
               />
             </form>
           </div>
+
 
           <ul className="navbar-nav mb-2 mb-lg-0 _header_nav_list ms-auto _mar_r8">
             <li className="nav-item _header_nav_item">
@@ -107,6 +128,7 @@ export default function Navbar() {
                     d="M7.547 19.55c.533.59 1.218.915 1.93.915.714 0 1.403-.324 1.938-.916a.777.777 0 011.09-.056c.318.284.344.77.058 1.084-.832.917-1.927 1.423-3.086 1.423h-.002c-1.155-.001-2.248-.506-3.077-1.424a.762.762 0 01.057-1.083.774.774 0 011.092.057zM9.527 0c4.58 0 7.657 3.543 7.657 6.85 0 1.702.436 2.424.899 3.19.457.754.976 1.612.976 3.233-.36 4.14-4.713 4.478-9.531 4.478-4.818 0-9.172-.337-9.528-4.413-.003-1.686.515-2.544.973-3.299l.161-.27c.398-.679.737-1.417.737-2.918C1.871 3.543 4.948 0 9.528 0zm0 1.535c-3.6 0-6.11 2.802-6.11 5.316 0 2.127-.595 3.11-1.12 3.978-.422.697-.755 1.247-.755 2.444.173 1.93 1.455 2.944 7.986 2.944 6.494 0 7.817-1.06 7.988-3.01-.003-1.13-.336-1.681-.757-2.378-.526-.868-1.12-1.851-1.12-3.978 0-2.514-2.51-5.316-6.111-5.316z"
                     clipRule="evenodd"
                   />
+
                 </svg>
                 <span className="_counting">6</span>
               </span>
@@ -157,13 +179,14 @@ export default function Navbar() {
                 }}
               >
                 <div className="_nav_profile_dropdown_info">
-                  <div className="_nav_profile_dropdown_image">
+                  <div className="_nav_dropdown_image">
                     <img
-                      src={user?.avatar || "/assets/images/profile.png"}
-                      alt="Image"
-                      className="_nav_drop_img"
+                      src={getAvatarUrl(user?.avatar, user?.firstName)}
+                      alt="Profile"
+                      className="rounded-circle"
                     />
                   </div>
+
                   <div className="_nav_profile_dropdown_info_txt">
                     <h4 className="_nav_dropdown_title">
                       {user?.firstName} {user?.lastName}
@@ -172,6 +195,7 @@ export default function Navbar() {
                       View Profile
                     </Link>
                   </div>
+
                 </div>
                 <hr />
                 <ul className="_nav_dropdown_list">

@@ -1,19 +1,19 @@
-// ─── User Types ────────────────────────────────────────────────────
 export interface IUser {
   _id: string;
   firstName: string;
   lastName: string;
   email: string;
   avatar?: string;
-  createdAt: string;
-  updatedAt: string;
+  createdAt: string | Date;
+  updatedAt: string | Date;
 }
 
-export interface IAuthUser extends IUser {
+export interface AuthResponse {
+  user: IUser;
   token: string;
 }
 
-// ─── Post Types ────────────────────────────────────────────────────
+//  Post Types
 export type PostVisibility = "public" | "private";
 
 export interface IPost {
@@ -22,43 +22,45 @@ export interface IPost {
   content: string;
   image?: string;
   visibility: PostVisibility;
-  likes: string[];       // array of User IDs
   likesCount: number;
   commentsCount: number;
-  createdAt: string;
-  updatedAt: string;
+  sharesCount: number;
+  isLiked?: boolean;
+
+  createdAt: string | Date;
+  updatedAt: string | Date;
 }
 
-// ─── Comment Types ─────────────────────────────────────────────────
+//  Comment Types
 export interface IComment {
   _id: string;
-  post: string;         // Post ID
+  post: string;
   author: IUser;
   content: string;
-  likes: string[];       // array of User IDs
   likesCount: number;
   repliesCount: number;
-  createdAt: string;
-  updatedAt: string;
+  isLiked?: boolean;
+  createdAt: string | Date;
+  updatedAt: string | Date;
 }
 
-// ─── Reply Types ───────────────────────────────────────────────────
+//  Reply Types
 export interface IReply {
   _id: string;
-  comment: string;      // Comment ID
+  comment: string;
   author: IUser;
   content: string;
-  likes: string[];       // array of User IDs
   likesCount: number;
-  createdAt: string;
-  updatedAt: string;
+  isLiked?: boolean;
+  createdAt: string | Date;
+  updatedAt: string | Date;
 }
 
-// ─── API Response Types ────────────────────────────────────────────
+//  API Response Types
 export interface ApiResponse<T = unknown> {
   success: boolean;
   message: string;
-  data?: T;
+  data: T;
 }
 
 export interface PaginatedResponse<T> {
@@ -70,7 +72,7 @@ export interface PaginatedResponse<T> {
   hasMore: boolean;
 }
 
-// ─── Auth Payload Types ────────────────────────────────────────────
+//  Payload Types
 export interface RegisterPayload {
   firstName: string;
   lastName: string;
@@ -83,7 +85,21 @@ export interface LoginPayload {
   password: string;
 }
 
-// ─── JWT Payload ───────────────────────────────────────────────────
+export interface CreatePostPayload {
+  content: string;
+  visibility?: PostVisibility;
+  image?: string;
+}
+
+export interface UpdatePostPayload {
+  content?: string;
+  visibility?: PostVisibility;
+  image?: string;
+}
+
+export type LikeTarget = "Post" | "Comment" | "Reply";
+
+//  JWT Payload
 export interface JwtPayload {
   userId: string;
   email: string;

@@ -96,14 +96,23 @@ export default function CreatePost({ onPostCreated }: CreatePostProps) {
                 className="_feed_inner_area_bottom_icon_link border-0 bg-transparent"
                 onClick={() => fileInputRef.current?.click()}
               >
-                <img src="/assets/images/image.svg" alt="Photo" className="_bottom_icon_img" />
-                <span>Photo/Video</span>
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="#45bd62" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
+                  <circle cx="8.5" cy="8.5" r="1.5" />
+                  <polyline points="21 15 16 10 5 21" />
+                </svg>
+                <span className="ms-1">Photo/Video</span>
               </button>
+
               {/* Other icons simplified as static for now */}
               <button type="button" className="_feed_inner_area_bottom_icon_link border-0 bg-transparent">
-                <img src="/assets/images/tag.svg" alt="Tag" className="_bottom_icon_img" />
-                <span>Tag Friends</span>
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="#1877f2" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z" />
+                  <line x1="7" y1="7" x2="7.01" y2="7" />
+                </svg>
+                <span className="ms-1">Tag Friends</span>
               </button>
+
             </div>
             <div className="_feed_inner_area_bottom_btn">
               <button type="submit" disabled={loading} className="_feed_inner_area_bottom_btn_link _btn1 px-4 py-2">

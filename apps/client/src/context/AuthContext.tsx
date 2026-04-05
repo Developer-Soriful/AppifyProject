@@ -76,16 +76,21 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const register = async (payload: RegisterPayload) => {
     try {
       const { data } = await apiClient.post("/auth/register", payload);
-      localStorage.setItem("token", data.data.token);
-      setUser(data.data.user);
-      toast.success("Welcome to Buddy Script!");
-      router.push("/feed");
+      
+      if (data?.data?.token) {
+        localStorage.setItem("token", data.data.token);
+        setUser(data.data.user);
+        toast.success("Welcome to Buddy Script!");
+        router.push("/feed");
+      }
     } catch (err: any) {
-      const msg = err.response?.data?.message || "Registration failed";
+      console.error("Registration full error:", err);
+      const msg = err.response?.data?.message || err.message || "Registration failed";
       toast.error(msg);
       throw err;
     }
   };
+
 
   const logout = () => {
     localStorage.removeItem("token");
