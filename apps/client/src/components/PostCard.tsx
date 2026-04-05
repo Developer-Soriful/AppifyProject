@@ -366,7 +366,7 @@ export default function PostCard({ post, onPostUpdated, onPostDeleted }: PostCar
             </span>
           </span>
         </button>
-        <button className="_feed_reaction border-0 bg-transparent">
+        <button className="_feed_reaction border-0 bg-transparent" onClick={() => setShowComments(!showComments)}>
           <span className="_feed_inner_timeline_reaction_link">
             <span className="d-flex align-items-center">
               <svg className="_reaction_svg" xmlns="http://www.w3.org/2000/svg" width="21" height="21" fill="none" viewBox="0 0 21 21">

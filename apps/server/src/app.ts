@@ -15,7 +15,6 @@ import messageRoutes from "./routes/messageRoutes.js";
 import errorHandler from "./middleware/errorHandler.js";
 
 import { ApiError } from "./utils/ApiError.js";
-import asyncHandler from "./utils/asyncHandler.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
