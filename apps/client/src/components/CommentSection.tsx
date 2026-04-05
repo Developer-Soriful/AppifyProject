@@ -1,12 +1,12 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { IComment } from "@appify/shared";
 import apiClient from "../lib/axios";
-import { formatDistanceToNow } from "date-fns";
 import { useAuth } from "../context/AuthContext";
 import toast from "react-hot-toast";
 import { getAvatarUrl } from "../lib/utils";
+import CommentItem from "./CommentItem";
 
 interface CommentSectionProps {
   postId: string;
@@ -19,32 +19,55 @@ export default function CommentSection({ postId, onCommentAdded }: CommentSectio
   const [content, setContent] = useState("");
   const [loading, setLoading] = useState(false);
   const [fetching, setFetching] = useState(true);
+  const [hasMore, setHasMore] = useState(false);
+  const [page, setPage] = useState(1);
+  const limit = 10;
 
-  useEffect(() => {
-    fetchComments();
-  }, [postId]);
-
-  const fetchComments = async () => {
+  // Fetch comments with pagination
+  const fetchComments = useCallback(async (reset = false) => {
+    const currentPage = reset ? 1 : page;
+    
+    setFetching(true);
     try {
-      const { data } = await apiClient.get(`/posts/${postId}/comments`);
-      setComments(data.data);
+      const { data } = await apiClient.get(
+        `/posts/${postId}/comments?page=${currentPage}&limit=${limit}`
+      );
+      
+      if (reset) {
+        setComments(data.data);
+        setPage(1);
+      } else {
+        setComments((prev) => [...prev, ...data.data]);
+      }
+      
+      setHasMore(data.hasMore);
     } catch (err) {
       console.error("Failed to fetch comments", err);
     } finally {
       setFetching(false);
     }
-  };
+  }, [postId, page]);
 
+  // Initial fetch
+  useEffect(() => {
+    fetchComments(true);
+  }, [postId]);
+
+  // Submit new comment
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!content.trim()) return;
 
     setLoading(true);
     try {
-      const { data } = await apiClient.post(`/posts/${postId}/comments`, { content: content.trim() });
+      const { data } = await apiClient.post(`/posts/${postId}/comments`, { 
+        content: content.trim() 
+      });
+      
       setComments((prev) => [data.data.comment, ...prev]);
       setContent("");
       onCommentAdded();
+      toast.success("Comment posted");
     } catch (err: any) {
       toast.error(err.response?.data?.message || "Failed to post comment");
     } finally {
@@ -52,8 +75,26 @@ export default function CommentSection({ postId, onCommentAdded }: CommentSectio
     }
   };
 
+  // Handle comment deletion
+  const handleCommentDelete = useCallback((commentId: string) => {
+    setComments((prev) => prev.filter((c) => c._id !== commentId));
+  }, []);
+
+  // Handle reply added (refresh post comment count)
+  const handleReplyAdded = useCallback(() => {
+    onCommentAdded();
+  }, [onCommentAdded]);
+
+  // Load more comments
+  const loadMore = async () => {
+    if (fetching || !hasMore) return;
+    setPage((prev) => prev + 1);
+    await fetchComments();
+  };
+
   return (
     <div className="_feed_inner_timeline_comment_area _padd_t24 border-top">
+      {/* Comment Input */}
       <div className="_feed_inner_timeline_comment_box _mar_b24 mt-3">
         <form onSubmit={handleSubmit} className="d-flex w-100 px-3">
           <div className="_feed_inner_timeline_comment_image">
@@ -64,8 +105,7 @@ export default function CommentSection({ postId, onCommentAdded }: CommentSectio
               style={{ width: "35px", height: "35px", objectFit: "cover" }} 
             />
           </div>
-          <div className="grow ms-3 position-relative">
-
+          <div className="flex-grow-1 ms-3 position-relative">
             <textarea 
               className="form-control _comment_input py-2 pe-5" 
               placeholder="Write a comment..." 
@@ -80,40 +120,53 @@ export default function CommentSection({ postId, onCommentAdded }: CommentSectio
               disabled={loading || !content.trim()} 
               className="btn btn-sm btn-link position-absolute end-0 bottom-0 text-primary mb-1 me-1 text-decoration-none"
             >
-              Post
+              {loading ? "Posting..." : "Post"}
             </button>
           </div>
         </form>
       </div>
 
+      {/* Comments List */}
       <div className="_feed_inner_timeline_comment_list px-3">
-        {fetching ? (
-          <div className="text-center py-3 text-muted">Loading comments...</div>
+        {fetching && comments.length === 0 ? (
+          <div className="text-center py-3 text-muted">
+            <span className="spinner-border spinner-border-sm me-2" />
+            Loading comments...
+          </div>
         ) : comments.length === 0 ? (
-          <div className="text-center py-3 text-muted">No comments yet.</div>
+          <div className="text-center py-3 text-muted">No comments yet. Be the first to comment!</div>
         ) : (
-          comments.map((comment) => (
-            <div key={comment._id} className="d-flex mb-4">
-              <img 
-                src={getAvatarUrl(comment.author.avatar, comment.author.firstName)} 
-                alt="Author" 
-                className="rounded-circle" 
-                style={{ width: "35px", height: "35px", objectFit: "cover" }} 
+          <>
+            {comments.map((comment) => (
+              <CommentItem
+                key={comment._id}
+                comment={comment}
+                onDelete={handleCommentDelete}
+                onReplyAdded={handleReplyAdded}
+                currentUserId={user?._id}
               />
-              <div className="ms-3 grow">
-
-                <div className="p-2 rounded bg-light">
-                  <h6 className="mb-1 small fw-bold">{comment.author.firstName} {comment.author.lastName}</h6>
-                  <p className="mb-0 small text-dark" style={{ lineHeight: "1.4" }}>{comment.content}</p>
-                </div>
-                <div className="mt-1 x-small d-flex align-items-center opacity-75">
-                  <span className="cursor-pointer me-3 text-primary-hover">Like</span>
-                  <span className="cursor-pointer me-3 text-primary-hover">Reply</span>
-                  <span className="text-muted">{formatDistanceToNow(new Date(comment.createdAt))} ago</span>
-                </div>
+            ))}
+            
+            {/* Load More Comments */}
+            {hasMore && (
+              <div className="text-center mt-3">
+                <button
+                  className="btn btn-link text-muted text-decoration-none"
+                  onClick={loadMore}
+                  disabled={fetching}
+                >
+                  {fetching ? (
+                    <>
+                      <span className="spinner-border spinner-border-sm me-2" />
+                      Loading...
+                    </>
+                  ) : (
+                    "Load more comments"
+                  )}
+                </button>
               </div>
-            </div>
-          ))
+            )}
+          </>
         )}
       </div>
     </div>

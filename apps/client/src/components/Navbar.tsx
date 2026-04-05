@@ -154,7 +154,7 @@ export default function Navbar() {
               <img
                 src={getAvatarUrl(user?.avatar, user?.firstName)}
                 alt="Image"
-                className="_nav_profile_img"
+                className="_header_nav_profile_image"
               />
             </div>
             <div className="_header_nav_dropdown">
