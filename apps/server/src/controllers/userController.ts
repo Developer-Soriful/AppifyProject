@@ -5,6 +5,7 @@ import Follow from "../models/Follow.js";
 import asyncHandler from "../utils/asyncHandler.js";
 import { ApiResponse } from "@appify/shared";
 import { ApiError } from "../utils/ApiError.js";
+import { uploadImage } from "../utils/cloudinary.js";
 
 export const getSuggestedUsers = asyncHandler(
   async (req: Request, res: Response) => {
@@ -57,9 +58,16 @@ export const updateProfile = asyncHandler(async (req: Request, res: Response) =>
   if (location !== undefined) updateData.location = location.trim();
   if (website !== undefined) updateData.website = website.trim();
 
-  // Handle avatar upload
+  // Handle avatar upload - Cloudinary or local
   if (req.file) {
-    updateData.avatar = `/uploads/${req.file.filename}`;
+    if (process.env.CLOUDINARY_CLOUD_NAME) {
+      // Upload to Cloudinary
+      const result = await uploadImage(req.file, "appify/avatars");
+      updateData.avatar = result.url;
+    } else {
+      // Local storage fallback
+      updateData.avatar = `/uploads/${req.file.filename}`;
+    }
   }
 
   // Validate required fields

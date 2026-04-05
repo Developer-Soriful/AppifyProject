@@ -5,13 +5,26 @@ import Like from "../models/Like.js";
 import User from "../models/User.js";
 import { ApiError } from "../utils/ApiError.js";
 import asyncHandler from "../utils/asyncHandler.js";
+import { uploadImage } from "../utils/cloudinary.js";
 
 export const createPost = asyncHandler(async (req: Request, res: Response) => {
   const { content, visibility = "public" } = req.body as CreatePostPayload;
 
   if (!content?.trim()) throw new ApiError("Post content is required", 400);
 
-  const image = req.file ? `/uploads/${req.file.filename}` : undefined;
+  let image: string | undefined;
+  
+  // Handle image upload - Cloudinary or local
+  if (req.file) {
+    if (process.env.CLOUDINARY_CLOUD_NAME) {
+      // Upload to Cloudinary
+      const result = await uploadImage(req.file);
+      image = result.url;
+    } else {
+      // Local storage fallback
+      image = `/uploads/${req.file.filename}`;
+    }
+  }
 
   const post = await Post.create({
     author: req.user!._id,
