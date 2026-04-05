@@ -14,7 +14,7 @@ const errorHandler = (err: Error, req: Request, res: Response, _next: NextFuncti
     message = Object.values(err.errors)
       .map((e) => e.message)
       .join(", ");
-  } else if ((err as Record<string, unknown>)["code"] === 11000) {
+  } else if ((err as unknown as Record<string, unknown>)["code"] === 11000) {
     statusCode = 409;
     message = "A record with this value already exists";
   } else if (err.message === "LIMIT_FILE_SIZE") {

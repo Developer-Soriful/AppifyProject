@@ -1,4 +1,5 @@
 import { Request, Response } from "express";
+import mongoose from "mongoose";
 import Like, { LikeTarget } from "../models/Like.js";
 import Post from "../models/Post.js";
 import Comment from "../models/Comment.js";
@@ -11,7 +12,15 @@ import { createNotification } from "./notificationController.js";
 const VALID_TARGETS: LikeTarget[] = ["Post", "Comment", "Reply"];
 
 // Map to avoid if-else chains
-const targetModelMap = { Post, Comment, Reply } as const;
+const targetModelMap: {
+  Post: typeof Post;
+  Comment: typeof Comment;
+  Reply: typeof Reply;
+} = {
+  Post: Post,
+  Comment: Comment,
+  Reply: Reply,
+};
 
 export const toggleLike = asyncHandler(async (req: Request, res: Response) => {
   const { targetType, targetId } = req.params as { targetType: LikeTarget; targetId: string };
@@ -21,8 +30,8 @@ export const toggleLike = asyncHandler(async (req: Request, res: Response) => {
     throw new ApiError("Invalid target type", 400);
   }
 
-  const Model = targetModelMap[targetType];
-  const target = await Model.findById(targetId).lean();
+  const Model = targetModelMap[targetType] as any;
+  const target = await Model.findById(targetId).lean() as { author?: { _id?: mongoose.Types.ObjectId | string } | mongoose.Types.ObjectId | string } | null;
   if (!target) throw new ApiError(`${targetType} not found`, 404);
 
   const existing = await Like.findOne({ user: req.user!._id, targetId, targetType });
@@ -41,7 +50,11 @@ export const toggleLike = asyncHandler(async (req: Request, res: Response) => {
   ]);
 
   // Create notification
-  const recipientId = (target as { author?: string; author?: { _id?: string } }).author?.toString?.() || (target as { author?: string }).author;
+  const targetAny = target as { author?: { _id?: string | mongoose.Types.ObjectId } | string | mongoose.Types.ObjectId };
+  const authorId = targetAny.author;
+  const recipientId = typeof authorId === "string" || authorId instanceof mongoose.Types.ObjectId
+    ? authorId.toString()
+    : authorId?._id?.toString?.() || undefined;
   if (recipientId && recipientId !== userId) {
     const user = await User.findById(userId).select("firstName lastName").lean();
     await createNotification({
