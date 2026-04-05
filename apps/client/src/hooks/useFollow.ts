@@ -151,6 +151,17 @@ export const useFollow = () => {
     }
   }, []);
 
+  // Toggle follow status (follow or unfollow based on current status)
+  const toggleFollow = useCallback(async (userId: string, isCurrentlyFollowing?: boolean) => {
+    if (isCurrentlyFollowing) {
+      await unfollow(userId);
+      return false;
+    } else {
+      await sendConnectionRequest(userId);
+      return true;
+    }
+  }, [unfollow, sendConnectionRequest]);
+
   return {
     loading,
     sendConnectionRequest,
@@ -158,6 +169,7 @@ export const useFollow = () => {
     rejectConnectionRequest,
     cancelConnectionRequest,
     unfollow,
+    toggleFollow,
     getPendingRequests,
     getSentRequests,
     checkFollowStatus,

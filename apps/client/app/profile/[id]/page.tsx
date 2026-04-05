@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { useParams } from "next/navigation";
 import Navbar from "../../../src/components/Navbar";
 import LeftSidebar from "../../../src/components/LeftSidebar";
@@ -30,13 +30,13 @@ export default function UserProfilePage() {
 
   useEffect(() => {
     if (id && authUser && id !== authUser._id) {
-      checkFollowStatus(id).then(setIsFollowing);
+      checkFollowStatus(id).then((status) => setIsFollowing(status === "connected"));
     }
   }, [id, authUser, checkFollowStatus]);
 
   const handleFollow = async () => {
     try {
-      const newStatus = await toggleFollow(id);
+      const newStatus = await toggleFollow(id, isFollowing);
       setIsFollowing(newStatus);
       setFollowersCount((prev) => newStatus ? prev + 1 : prev - 1);
       toast.success(newStatus ? "Followed successfully" : "Unfollowed successfully");
