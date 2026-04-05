@@ -2,14 +2,17 @@ import { Request, Response } from "express";
 import Comment from "../models/Comment.js";
 import Post from "../models/Post.js";
 import Like from "../models/Like.js";
+import User from "../models/User.js";
 import { ApiError } from "../utils/ApiError.js";
 import asyncHandler from "../utils/asyncHandler.js";
+import { createNotification } from "./notificationController.js";
 
 export const addComment = asyncHandler(async (req: Request, res: Response) => {
+  const userId = req.user!._id.toString();
   const post = await Post.findById(req.params["postId"]);
   if (!post) throw new ApiError("Post not found", 404);
 
-  const isOwner = post.author.toString() === req.user!._id.toString();
+  const isOwner = post.author.toString() === userId;
   if (post.visibility === "private" && !isOwner) {
     throw new ApiError("Cannot comment on a private post", 403);
   }
@@ -26,6 +29,21 @@ export const addComment = asyncHandler(async (req: Request, res: Response) => {
     Post.findByIdAndUpdate(post._id, { $inc: { commentsCount: 1 } }),
     comment.populate("author", "firstName lastName avatar"),
   ]);
+
+  // Create notification for post author
+  const postAuthorId = post.author.toString();
+  if (postAuthorId !== userId) {
+    const user = await User.findById(userId).select("firstName lastName").lean();
+    await createNotification({
+      recipient: postAuthorId,
+      sender: userId,
+      type: "comment",
+      title: "New Comment",
+      message: `${user?.firstName} ${user?.lastName} commented on your post`,
+      relatedPost: post._id.toString(),
+      relatedComment: comment._id.toString(),
+    });
+  }
 
   res.status(201).json({
     success: true,

@@ -36,5 +36,10 @@ export const usePosts = () => {
 
   const refreshPosts = () => fetchPosts(1);
 
-  return { posts, loading, total, page, hasMore, fetchPosts, refreshPosts };
+  const loadMore = useCallback(async (search: string = "", author: string = "") => {
+    if (!hasMore || loading) return;
+    await fetchPosts(page + 1, search, author);
+  }, [hasMore, loading, page, fetchPosts]);
+
+  return { posts, loading, total, page, hasMore, fetchPosts, refreshPosts, loadMore };
 };

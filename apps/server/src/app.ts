@@ -9,6 +9,9 @@ import commentRoutes from "./routes/commentRoutes.js";
 import replyRoutes from "./routes/replyRoutes.js";
 import likeRoutes from "./routes/likeRoutes.js";
 import userRoutes from "./routes/userRoutes.js";
+import notificationRoutes from "./routes/notificationRoutes.js";
+import followRoutes from "./routes/followRoutes.js";
+import messageRoutes from "./routes/messageRoutes.js";
 import errorHandler from "./middleware/errorHandler.js";
 
 import { ApiError } from "./utils/ApiError.js";
@@ -21,7 +24,7 @@ const app = express();
 
 app.use(
   cors({
-    origin: process.env.CLIENT_URL ?? "http://localhost:4545",
+    origin: process.env.CLIENT_URL,
     credentials: true,
   }),
 );
@@ -44,6 +47,9 @@ app.use("/api/posts/:postId/comments", commentRoutes);
 app.use("/api/comments/:commentId/replies", replyRoutes);
 app.use("/api/likes", likeRoutes);
 app.use("/api/users", userRoutes);
+app.use("/api/notifications", notificationRoutes);
+app.use("/api/follows", followRoutes);
+app.use("/api/messages", messageRoutes);
 
 
 // 404

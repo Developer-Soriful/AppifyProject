@@ -1,6 +1,7 @@
 "use client";
 
 import React from "react";
+import Link from "next/link";
 import Navbar from "../../src/components/Navbar";
 import LeftSidebar from "../../src/components/LeftSidebar";
 import RightSidebar from "../../src/components/RightSidebar";
@@ -40,7 +41,29 @@ export default function MyProfilePage() {
 
                 <h3 className="_title4">{profileUser?.firstName} {profileUser?.lastName}</h3>
                 <p className="text-muted">{profileUser?.email}</p>
-                <button className="btn btn-outline-primary btn-sm px-4 mb-3">Edit Profile</button>
+                
+                {/* Followers/Following Count */}
+                <div className="d-flex justify-content-center gap-4 mb-3">
+                  <div className="text-center">
+                    <strong className="d-block">{profileUser?.followersCount || 0}</strong>
+                    <small className="text-muted">Followers</small>
+                  </div>
+                  <div className="text-center">
+                    <strong className="d-block">{profileUser?.followingCount || 0}</strong>
+                    <small className="text-muted">Following</small>
+                  </div>
+                </div>
+
+                {/* Bio */}
+                {profileUser?.bio && (
+                  <p className="text-muted mb-2" style={{ maxWidth: "400px", margin: "0 auto" }}>
+                    {profileUser.bio}
+                  </p>
+                )}
+
+                <Link href="/settings" className="btn btn-outline-primary btn-sm px-4 mb-3">
+                  Edit Profile
+                </Link>
               </div>
 
               {/* Show CreatePost on my own profile */}

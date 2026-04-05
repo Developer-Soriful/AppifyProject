@@ -4,6 +4,11 @@ export interface IUser {
   lastName: string;
   email: string;
   avatar?: string;
+  bio?: string;
+  location?: string;
+  website?: string;
+  followersCount?: number;
+  followingCount?: number;
   createdAt: string | Date;
   updatedAt: string | Date;
 }
@@ -26,7 +31,8 @@ export interface IPost {
   commentsCount: number;
   sharesCount: number;
   isLiked?: boolean;
-
+  isSaved?: boolean;
+  isHidden?: boolean;
   createdAt: string | Date;
   updatedAt: string | Date;
 }
@@ -98,6 +104,12 @@ export interface UpdatePostPayload {
 }
 
 export type LikeTarget = "Post" | "Comment" | "Reply";
+
+export type ConnectionStatus = "none" | "connected" | "pending_sent" | "pending_received";
+
+export interface IUserWithConnection extends IUser {
+  connectionStatus: ConnectionStatus;
+}
 
 //  JWT Payload
 export interface JwtPayload {

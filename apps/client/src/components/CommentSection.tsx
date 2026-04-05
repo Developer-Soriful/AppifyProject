@@ -6,6 +6,7 @@ import apiClient from "../lib/axios";
 import { formatDistanceToNow } from "date-fns";
 import { useAuth } from "../context/AuthContext";
 import toast from "react-hot-toast";
+import { getAvatarUrl } from "../lib/utils";
 
 interface CommentSectionProps {
   postId: string;
@@ -57,7 +58,7 @@ export default function CommentSection({ postId, onCommentAdded }: CommentSectio
         <form onSubmit={handleSubmit} className="d-flex w-100 px-3">
           <div className="_feed_inner_timeline_comment_image">
             <img 
-              src={user?.avatar || "/assets/images/profile.png"} 
+              src={getAvatarUrl(user?.avatar, user?.firstName)} 
               alt="User" 
               className="rounded-circle" 
               style={{ width: "35px", height: "35px", objectFit: "cover" }} 
@@ -94,7 +95,7 @@ export default function CommentSection({ postId, onCommentAdded }: CommentSectio
           comments.map((comment) => (
             <div key={comment._id} className="d-flex mb-4">
               <img 
-                src={comment.author.avatar || "/assets/images/profile.png"} 
+                src={getAvatarUrl(comment.author.avatar, comment.author.firstName)} 
                 alt="Author" 
                 className="rounded-circle" 
                 style={{ width: "35px", height: "35px", objectFit: "cover" }} 

@@ -3,8 +3,10 @@ import Like, { LikeTarget } from "../models/Like.js";
 import Post from "../models/Post.js";
 import Comment from "../models/Comment.js";
 import Reply from "../models/Reply.js";
+import User from "../models/User.js";
 import { ApiError } from "../utils/ApiError.js";
 import asyncHandler from "../utils/asyncHandler.js";
+import { createNotification } from "./notificationController.js";
 
 const VALID_TARGETS: LikeTarget[] = ["Post", "Comment", "Reply"];
 
@@ -13,6 +15,7 @@ const targetModelMap = { Post, Comment, Reply } as const;
 
 export const toggleLike = asyncHandler(async (req: Request, res: Response) => {
   const { targetType, targetId } = req.params as { targetType: LikeTarget; targetId: string };
+  const userId = req.user!._id.toString();
 
   if (!VALID_TARGETS.includes(targetType)) {
     throw new ApiError("Invalid target type", 400);
@@ -36,6 +39,21 @@ export const toggleLike = asyncHandler(async (req: Request, res: Response) => {
     Like.create({ user: req.user!._id, targetId, targetType }),
     Model.findByIdAndUpdate(targetId, { $inc: { likesCount: 1 } }),
   ]);
+
+  // Create notification
+  const recipientId = (target as { author?: string; author?: { _id?: string } }).author?.toString?.() || (target as { author?: string }).author;
+  if (recipientId && recipientId !== userId) {
+    const user = await User.findById(userId).select("firstName lastName").lean();
+    await createNotification({
+      recipient: recipientId,
+      sender: userId,
+      type: "like",
+      title: "New Like",
+      message: `${user?.firstName} ${user?.lastName} liked your ${targetType.toLowerCase()}`,
+      relatedPost: targetType === "Post" ? targetId : undefined,
+      relatedComment: targetType === "Comment" ? targetId : undefined,
+    });
+  }
 
   res.json({ success: true, message: "Liked", data: { isLiked: true } });
 });

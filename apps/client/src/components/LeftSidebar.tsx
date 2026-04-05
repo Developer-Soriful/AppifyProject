@@ -5,26 +5,238 @@ import Link from "next/link";
 import apiClient from "../lib/axios";
 import { IUser } from "@appify/shared";
 import { getAvatarUrl } from "../lib/utils";
+import { useFollow, ConnectionStatus } from "../hooks/useFollow";
+import toast from "react-hot-toast";
 
 
+
+interface PendingRequest {
+  _id: string;
+  user: IUser;
+  createdAt: string;
+}
+
+interface SuggestedUser extends IUser {
+  connectionStatus?: ConnectionStatus;
+}
 
 export default function LeftSidebar() {
-  const [suggestedUsers, setSuggestedUsers] = useState<IUser[]>([]);
+  const [suggestedUsers, setSuggestedUsers] = useState<SuggestedUser[]>([]);
+  const [pendingRequests, setPendingRequests] = useState<PendingRequest[]>([]);
+  const [loadingSuggested, setLoadingSuggested] = useState(true);
+  const [loadingRequests, setLoadingRequests] = useState(true);
 
+  const {
+    loading,
+    sendConnectionRequest,
+    acceptConnectionRequest,
+    rejectConnectionRequest,
+    cancelConnectionRequest,
+    unfollow,
+    checkFollowStatus,
+    getPendingRequests,
+  } = useFollow();
+
+  // Fetch suggested users and check their connection status
   useEffect(() => {
     const fetchSuggested = async () => {
       try {
         const { data } = await apiClient.get("/users/suggested");
-        setSuggestedUsers(data.data);
+        const users = data.data as IUser[];
+
+        // Check connection status for each user
+        const usersWithStatus = await Promise.all(
+          users.map(async (user) => {
+            const status = await checkFollowStatus(user._id);
+            return { ...user, connectionStatus: status };
+          })
+        );
+
+        setSuggestedUsers(usersWithStatus);
       } catch (err) {
         console.error("Failed to fetch suggested users", err);
+      } finally {
+        setLoadingSuggested(false);
       }
     };
     fetchSuggested();
-  }, []);
+  }, [checkFollowStatus]);
+
+  // Fetch pending connection requests
+  useEffect(() => {
+    const fetchPending = async () => {
+      try {
+        const { requests } = await getPendingRequests(5);
+        setPendingRequests(requests);
+      } catch (err) {
+        console.error("Failed to fetch pending requests", err);
+      } finally {
+        setLoadingRequests(false);
+      }
+    };
+    fetchPending();
+  }, [getPendingRequests]);
+
+  // Handle sending connection request
+  const handleConnect = async (userId: string) => {
+    try {
+      await sendConnectionRequest(userId);
+      setSuggestedUsers((prev) =>
+        prev.map((u) =>
+          u._id === userId ? { ...u, connectionStatus: "pending_sent" as ConnectionStatus } : u
+        )
+      );
+      toast.success("Connection request sent");
+    } catch (err: any) {
+      toast.error(err.response?.data?.message || "Failed to send request");
+    }
+  };
+
+  // Handle canceling sent request
+  const handleCancel = async (userId: string) => {
+    try {
+      await cancelConnectionRequest(userId);
+      setSuggestedUsers((prev) =>
+        prev.map((u) =>
+          u._id === userId ? { ...u, connectionStatus: "none" as ConnectionStatus } : u
+        )
+      );
+      toast.success("Request canceled");
+    } catch (err: any) {
+      toast.error(err.response?.data?.message || "Failed to cancel request");
+    }
+  };
+
+  // Handle accepting incoming request
+  const handleAccept = async (userId: string) => {
+    try {
+      await acceptConnectionRequest(userId);
+      // Remove from pending requests
+      setPendingRequests((prev) => prev.filter((r) => r.user._id !== userId));
+      // Update suggested users if present
+      setSuggestedUsers((prev) =>
+        prev.map((u) =>
+          u._id === userId ? { ...u, connectionStatus: "connected" as ConnectionStatus } : u
+        )
+      );
+      toast.success("Connection request accepted");
+    } catch (err: any) {
+      toast.error(err.response?.data?.message || "Failed to accept request");
+    }
+  };
+
+  // Handle rejecting incoming request
+  const handleReject = async (userId: string) => {
+    try {
+      await rejectConnectionRequest(userId);
+      // Remove from pending requests
+      setPendingRequests((prev) => prev.filter((r) => r.user._id !== userId));
+      // Update suggested users if present
+      setSuggestedUsers((prev) =>
+        prev.map((u) =>
+          u._id === userId ? { ...u, connectionStatus: "none" as ConnectionStatus } : u
+        )
+      );
+      toast.success("Connection request rejected");
+    } catch (err: any) {
+      toast.error(err.response?.data?.message || "Failed to reject request");
+    }
+  };
+
+  // Handle unfollowing a user
+  const handleUnfollow = async (userId: string) => {
+    try {
+      await unfollow(userId);
+      setSuggestedUsers((prev) =>
+        prev.map((u) =>
+          u._id === userId ? { ...u, connectionStatus: "none" as ConnectionStatus } : u
+        )
+      );
+      toast.success("Unfollowed successfully");
+    } catch (err: any) {
+      toast.error(err.response?.data?.message || "Failed to unfollow");
+    }
+  };
+
+  // Get button config based on connection status
+  const getButtonConfig = (status: ConnectionStatus | undefined) => {
+    switch (status) {
+      case "connected":
+        return { text: "Followed", className: "_info_link _friends_btn_link", onClick: handleUnfollow };
+      case "pending_sent":
+        return { text: "Pending", className: "_info_link", onClick: handleCancel };
+      case "pending_received":
+        return { text: "Respond", className: "_info_link _friends_btn_link1", disabled: true };
+      default:
+        return { text: "Connect", className: "_info_link", onClick: handleConnect };
+    }
+  };
 
   return (
     <div className="_layout_left_sidebar_wrap">
+      {/* Connection Requests Section */}
+      {pendingRequests.length > 0 && (
+        <div className="_layout_left_sidebar_inner _mar_b16">
+          <div className="_left_inner_area_suggest _padd_t24 _padd_b6 _padd_r24 _padd_l24 _b_radious6 _feed_inner_area">
+            <div className="_left_inner_area_suggest_content _mar_b24">
+              <h4 className="_left_inner_area_suggest_content_title _title5">
+                Connection Requests ({pendingRequests.length})
+              </h4>
+              <span className="_left_inner_area_suggest_content_txt">
+                <Link className="_left_inner_area_suggest_content_txt_link" href="/requests">
+                  See All
+                </Link>
+              </span>
+            </div>
+
+            {loadingRequests ? (
+              <p className="text-muted small px-3">Loading...</p>
+            ) : (
+              pendingRequests.map((request) => (
+                <div key={request._id} className="_left_inner_area_frinds_info _mar_b16">
+                  <div className="_left_inner_area_frinds_info_box">
+                    <div className="_left_inner_area_frinds_info_box_image">
+                      <Link href={`/profile/${request.user._id}`}>
+                        <img
+                          src={getAvatarUrl(request.user.avatar, request.user.firstName)}
+                          alt="User"
+                          className="_friends_info_img"
+                        />
+                      </Link>
+                    </div>
+
+                    <div className="_left_inner_area_frinds_info_box_txt">
+                      <Link href={`/profile/${request.user._id}`}>
+                        <h4 className="_left_inner_area_frinds_info_box_title">
+                          {request.user.firstName} {request.user.lastName}
+                        </h4>
+                      </Link>
+                      <p className="_left_inner_area_frinds_info_box_para">Wants to connect</p>
+                    </div>
+                  </div>
+
+                  <div className="_left_inner_area_frinds_info_link _d_flex _gap_8 _mt_8">
+                    <button
+                      onClick={() => handleAccept(request.user._id)}
+                      disabled={loading[request.user._id]}
+                      className="_friends_info_link _friends_btn_link _flex_1"
+                    >
+                      {loading[request.user._id] ? "..." : "Accept"}
+                    </button>
+                    <button
+                      onClick={() => handleReject(request.user._id)}
+                      disabled={loading[request.user._id]}
+                      className="_friends_info_link _friends_btn_link1 _flex_1"
+                    >
+                      {loading[request.user._id] ? "..." : "Reject"}
+                    </button>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+        </div>
+      )}
       <div className="_layout_left_sidebar_inner">
         <div className="_left_inner_area_explore _padd_t24 _padd_b6 _padd_r24 _padd_l24 _b_radious6 _feed_inner_area">
           <h4 className="_left_inner_area_explore_title _title5 _mar_b24">Explore</h4>
@@ -58,6 +270,13 @@ export default function LeftSidebar() {
                 </svg> Bookmarks
               </Link>
             </li>
+            <li className="_left_inner_area_explore_item">
+              <Link href="/hidden" className="_left_inner_area_explore_link">
+                <svg xmlns="http://www.w3.org/2000/svg" width="22" height="24" fill="none" viewBox="0 0 22 24">
+                  <path fill="#666" d="M12 7c2.76 0 5 2.24 5 5 0 .65-.13 1.26-.36 1.83l2.92 2.92c1.51-1.26 2.7-2.89 3.43-4.75-1.73-4.39-6-7.5-11-7.5-1.4 0-2.74.25-3.98.7l2.16 2.16C10.74 7.13 11.35 7 12 7zM2 4.27l2.28 2.28.46.46C3.08 8.3 1.78 10.02 1 12c1.73 4.39 6 7.5 11 7.5 1.55 0 3.03-.3 4.38-.84l.42.42L19.73 22 21 20.73 3.27 3 2 4.27zM7.53 9.8l1.55 1.55c-.05.21-.08.43-.08.65 0 1.66 1.34 3 3 3 .22 0 .44-.03.65-.08l1.55 1.55c-.67.33-1.41.53-2.2.53-2.76 0-5-2.24-5-5 0-.79.2-1.53.53-2.2zm4.31-.78l3.15 3.15.02-.16c0-1.66-1.34-3-3-3l-.17.01z" />
+                </svg> Hidden Posts
+              </Link>
+            </li>
           </ul>
         </div>
       </div>
@@ -71,30 +290,47 @@ export default function LeftSidebar() {
             </span>
           </div>
           
-          {suggestedUsers.length === 0 ? (
+          {loadingSuggested ? (
+            <p className="text-muted small px-3">Loading...</p>
+          ) : suggestedUsers.length === 0 ? (
             <p className="text-muted small px-3">No suggestions available</p>
           ) : (
-            suggestedUsers.map((sUser) => (
-              <div key={sUser._id} className="_left_inner_area_suggest_info">
-                <div className="_left_inner_area_suggest_info_box">
-                  <div className="_left_inner_area_suggest_info_image">
-                    <Link href={`/profile/${sUser._id}`}>
-                      <img src={getAvatarUrl(sUser.avatar, sUser.firstName)} alt="Image" className="_info_img" />
-                    </Link>
-                  </div>
+            suggestedUsers.map((sUser) => {
+              const buttonConfig = getButtonConfig(sUser.connectionStatus);
+              return (
+                <div key={sUser._id} className="_left_inner_area_suggest_info">
+                  <div className="_left_inner_area_suggest_info_box">
+                    <div className="_left_inner_area_suggest_info_image">
+                      <Link href={`/profile/${sUser._id}`}>
+                        <img
+                          src={getAvatarUrl(sUser.avatar, sUser.firstName)}
+                          alt="User"
+                          className="_info_img"
+                        />
+                      </Link>
+                    </div>
 
-                  <div className="_left_inner_area_suggest_info_txt">
-                    <Link href={`/profile/${sUser._id}`}>
-                      <h4 className="_left_inner_area_suggest_info_title">{sUser.firstName} {sUser.lastName}</h4>
-                    </Link>
-                    <p className="_left_inner_area_suggest_info_para">New User</p>
+                    <div className="_left_inner_area_suggest_info_txt">
+                      <Link href={`/profile/${sUser._id}`}>
+                        <h4 className="_left_inner_area_suggest_info_title">
+                          {sUser.firstName} {sUser.lastName}
+                        </h4>
+                      </Link>
+                      <p className="_left_inner_area_suggest_info_para">New User</p>
+                    </div>
+                  </div>
+                  <div className="_left_inner_area_suggest_info_link">
+                    <button
+                      onClick={() => buttonConfig.onClick?.(sUser._id)}
+                      disabled={loading[sUser._id] || buttonConfig.disabled}
+                      className={buttonConfig.className}
+                    >
+                      {loading[sUser._id] ? "..." : buttonConfig.text}
+                    </button>
                   </div>
                 </div>
-                <div className="_left_inner_area_suggest_info_link">
-                  <Link href="#0" className="_info_link">Connect</Link>
-                </div>
-              </div>
-            ))
+              );
+            })
           )}
 
         </div>

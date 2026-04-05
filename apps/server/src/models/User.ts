@@ -5,6 +5,13 @@ import { IUser } from "@appify/shared";
 export interface IUserDocument
   extends Document, Omit<IUser, "_id" | "createdAt" | "updatedAt"> {
   password: string;
+  bio: string;
+  location: string;
+  website: string;
+  followersCount: number;
+  followingCount: number;
+  savedPosts: mongoose.Types.ObjectId[];
+  hiddenPosts: mongoose.Types.ObjectId[];
   createdAt: Date;
   updatedAt: Date;
   comparePassword(candidate: string): Promise<boolean>;
@@ -26,6 +33,13 @@ const userSchema = new Schema<IUserDocument>(
       type: String, 
       default: "https://api.dicebear.com/7.x/avataaars/svg?seed=fallback" 
     },
+    bio: { type: String, trim: true, maxlength: 500, default: "" },
+    location: { type: String, trim: true, maxlength: 100, default: "" },
+    website: { type: String, trim: true, maxlength: 200, default: "" },
+    followersCount: { type: Number, default: 0 },
+    followingCount: { type: Number, default: 0 },
+    savedPosts: [{ type: Schema.Types.ObjectId, ref: "Post" }],
+    hiddenPosts: [{ type: Schema.Types.ObjectId, ref: "Post" }],
   },
   { timestamps: true },
 );
