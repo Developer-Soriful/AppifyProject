@@ -29,12 +29,13 @@ export default function RightSidebar() {
   }, []);
 
   const handleFollow = async (userId: string) => {
+    const isCurrentlyFollowing = followStates[userId] || false;
     try {
-      const newStatus = await toggleFollow(userId);
+      const newStatus = await toggleFollow(userId, isCurrentlyFollowing);
       setFollowStates((prev) => ({ ...prev, [userId]: newStatus }));
-      toast.success(newStatus ? "Followed successfully" : "Unfollowed successfully");
-    } catch {
-      toast.error("Failed to update follow status");
+      toast.success(newStatus ? "Connection request sent" : "Unfollowed successfully");
+    } catch (err: any) {
+      toast.error(err.response?.data?.message || "Failed to update follow status");
     }
   };
 

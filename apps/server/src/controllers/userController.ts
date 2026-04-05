@@ -11,9 +11,27 @@ export const getSuggestedUsers = asyncHandler(
   async (req: Request, res: Response) => {
     const currentUserId = req.user!._id;
 
-    // Fetch users that are not the current user
-    const users = await User.find({ _id: { $ne: currentUserId } })
-      .select("firstName lastName avatar")
+    // Get IDs of users to exclude (already following, pending, or self)
+    const follows = await Follow.find({
+      $or: [
+        { follower: currentUserId },
+        { following: currentUserId },
+      ],
+    }).select("follower following").lean();
+
+    const excludeIds = new Set([currentUserId.toString()]);
+    
+    follows.forEach((f) => {
+      excludeIds.add(f.follower.toString());
+      excludeIds.add(f.following.toString());
+    });
+
+    // Fetch suggested users (not in exclude list)
+    const users = await User.find({
+      _id: { $nin: Array.from(excludeIds) },
+    })
+      .select("firstName lastName avatar followersCount")
+      .sort({ followersCount: -1 }) // Popular users first
       .limit(5)
       .lean();
 
